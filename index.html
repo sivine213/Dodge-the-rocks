@@ -1,233 +1,617 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dodge the Rocks</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: radial-gradient(circle, #0b0b1e, #000);
-      color: white;
-      font-family: sans-serif;
-    }
-    #gameCanvas {
-      display: block;
-      margin: 0 auto;
-      background: #111;
-      border: 3px solid white;
-      border-radius: 15px;
-    }
-    #hud {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 20px;
-    }
-    .powerup {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      position: absolute;
-    }
-    .shoot { background: red; }
-    .speed { background: yellow; }
-    .slow { background: cyan; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dodge the Rocks — Cave Edition</title>
+<style>
+  :root{
+    --bg:#071017;
+    --panel:#0b1220aa;
+    --accent:#f59e0b;
+    --text:#e6eef8;
+  }
+  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:var(--text);background:#05050a;}
+  body{display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;}
+  .game-wrap{
+    width:min(960px,96vw);
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:14px;padding:14px;display:grid;grid-template-columns:1fr 280px;gap:14px;box-shadow:0 10px 30px rgba(2,6,23,0.6);
+  }
+  .panel{background:var(--panel);border-radius:10px;padding:10px;box-sizing:border-box}
+  canvas{display:block;width:100%;height:560px;border-radius:8px;background:linear-gradient(180deg,#071428 0%, #02101b 100%);box-shadow:inset 0 2px 12px rgba(0,0,0,0.6)}
+  h1{font-size:18px;margin:0 0 8px 0;text-align:center}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  button{background:linear-gradient(180deg,var(--accent),#c77b06);color:#00110a;border:none;padding:10px 12px;border-radius:8px;font-weight:700;cursor:pointer;box-shadow:0 6px 12px rgba(0,0,0,0.35)}
+  button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);box-shadow:none;padding:8px}
+  .sidebar{display:flex;flex-direction:column;gap:10px}
+  .stat{display:flex;justify-content:space-between;padding:8px;border-radius:6px;background:linear-gradient(90deg, rgba(255,255,255,0.01), transparent);font-weight:600}
+  .help{font-size:13px;color:#a7b6cf;padding:6px;border-radius:6px}
+  .leaderboard{font-size:14px;color:#cbdaf1;line-height:1.6}
+  .footer{font-size:12px;color:#9fb0d1;text-align:center;margin-top:auto}
+  @media (max-width:880px){ .game-wrap{grid-template-columns:1fr} canvas{height:440px} }
+</style>
 </head>
 <body>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
-  <div id="hud">Score: <span id="score">0</span></div>
+  <div class="game-wrap">
+    <div class="panel">
+      <h1>Dodge the Rocks — Cave Edition</h1>
+      <canvas id="game" width="900" height="560" aria-label="Dodge the Rocks cave game"></canvas>
 
-  <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+      <div class="controls">
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn" class="secondary">Pause</button>
+        <button id="restartBtn" class="secondary">Restart</button>
+      </div>
+      <div style="text-align:center;color:#a7b6cf;font-weight:600;margin-top:8px">Use WASD or ←→ (Space to shoot when you have blaster)</div>
+    </div>
 
-    const player = { x: 400, y: 550, size: 20, speed: 5, color: 'lime' };
-    let rocks = [];
-    let bullets = [];
-    let powerUps = [];
-    let score = 0;
-    let gameOver = false;
-    let baseRockSpeed = 2;
-    let currentRockSpeed = baseRockSpeed;
-    let powerUpActive = null;
-    let powerUpTimer = 0;
+    <div class="panel sidebar">
+      <div class="stat"><span>Score</span><span id="score">0</span></div>
+      <div class="stat"><span>High Score</span><span id="highScore">0</span></div>
+      <div class="stat"><span>Rocks Dodged</span><span id="dodged">0</span></div>
+      <div class="stat"><span>Active</span><span id="active">—</span></div>
 
-    // Controls
-    const keys = {};
-    window.addEventListener('keydown', e => keys[e.key] = true);
-    window.addEventListener('keyup', e => keys[e.key] = false);
+      <div class="help">Collect power-ups (glowing crystals): <strong style="color:#ff6b6b">Red</strong>=Blaster, <strong style="color:#ffd166">Yellow</strong>=Speed, <strong style="color:#7dd3fc">Cyan</strong>=Slow Motion. Each lasts 5s and can't stack.</div>
 
-    function spawnRock() {
-      rocks.push({
-        x: Math.random() * canvas.width,
-        y: -20,
-        size: 20 + Math.random() * 15,
-        speed: currentRockSpeed + Math.random() * 2
-      });
+      <h3 style="margin:0">Leaderboard</h3>
+      <div id="leaderboard" class="leaderboard">No scores yet.</div>
+
+      <div class="footer">Made with HTML / JS — save as index.html</div>
+    </div>
+  </div>
+
+<script>
+/* Dodge the Rocks — Cave Edition
+   Adds: cave background, start explosion animation, 3 power-ups (5s each, non-stacking),
+   WASD + Arrow controls, shooting when blaster active, rock speed reset on death,
+   in-browser synthesized SFX (no external files).
+*/
+
+(() => {
+  // Canvas & context
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+
+  // UI
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const scoreEl = document.getElementById('score');
+  const highScoreEl = document.getElementById('highScore');
+  const dodgedEl = document.getElementById('dodged');
+  const activeEl = document.getElementById('active');
+  const lbEl = document.getElementById('leaderboard');
+
+  // Game state
+  let W = canvas.width, H = canvas.height;
+  let running = false, paused = false;
+  let lastTime = 0;
+  let rocks = [], bullets = [], powerUps = [];
+  let score = 0, dodged = 0;
+  const baseSpeedFactor = 1;
+  let speedFactor = baseSpeedFactor;
+  let spawnTimer = 0, spawnInterval = 900;
+  let wallTime = 0;
+
+  // Player
+  const player = { x: W/2, y: H - 60, r: 18, baseSpeed: 360, speed: 360, color: '#46c6ff' };
+
+  // Power-up state
+  let activePower = null; // 'blaster' | 'speed' | 'slow'
+  let activeTimer = 0; // frames (60fps). 5s -> 300 frames approx
+  const POWER_DURATION = 300;
+
+  // Controls
+  const keys = {};
+  window.addEventListener('keydown', e => { keys[e.key] = true; if(e.key===' '){ e.preventDefault(); } });
+  window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+  // Leaderboard (local)
+  let highScore = Number(localStorage.getItem('dodgeHigh') || 0);
+  highScoreEl.textContent = highScore;
+  updateLeaderboard();
+
+  // --- Audio (WebAudio synths, small functions) ---
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioCtx();
+
+  function playExplosion() {
+    const now = audioCtx.currentTime;
+    // layered noise hit
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize/5));
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'lowpass'; noiseFilter.frequency.setValueAtTime(1000, now);
+    noise.connect(noiseFilter).connect(audioCtx.destination);
+
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.5);
+    gain.gain.setValueAtTime(0.8, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc.connect(gain).connect(audioCtx.destination);
+    noise.start(now); noise.stop(now + 0.6);
+    osc.start(now); osc.stop(now + 0.6);
+  }
+
+  function playPickup() {
+    const now = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(880, now);
+    o.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.linearRampToValueAtTime(0.12, now + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(now); o.stop(now + 0.3);
+  }
+
+  function playShoot() {
+    const now = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'square';
+    o.frequency.setValueAtTime(1200, now);
+    o.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+    g.gain.setValueAtTime(0.15, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(now); o.stop(now + 0.14);
+  }
+
+  function playHit() {
+    const now = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(300, now);
+    g.gain.setValueAtTime(0.25, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    o.connect(g).connect(audioCtx.destination);
+    o.start(now); o.stop(now + 0.12);
+  }
+
+  // --- Cave background drawing ---
+  function drawCaveBackground(offsetX = 0, offsetY = 0) {
+    // simple gradient + cave floor + crystals
+    const g = ctx.createLinearGradient(0 + offsetX, 0 + offsetY, 0 + offsetX, H + offsetY);
+    g.addColorStop(0, '#031017');
+    g.addColorStop(0.5, '#041226');
+    g.addColorStop(1, '#02060a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0 + offsetX, 0 + offsetY, W, H);
+
+    // cave walls - subtle noise arcs
+    ctx.save();
+    ctx.translate(offsetX, offsetY);
+    for(let i=0;i<6;i++){
+      const hue = 10 + i*6;
+      ctx.fillStyle = `rgba(${20+i*6},${30+i*10},${40+i*8},0.06)`;
+      ctx.beginPath();
+      ctx.ellipse(W * (i/6), H*0.1 + i*12, 260 - i*30, 120 + i*15, Math.PI/6, 0, Math.PI*2);
+      ctx.fill();
+    }
+    // crystals (glow)
+    for(let i=0;i<12;i++){
+      const cx = 40 + Math.random()*(W-80);
+      const cy = 60 + Math.random()*160;
+      drawCrystal(cx, cy, Math.random()*14 + 6, i % 3);
+    }
+    ctx.restore();
+  }
+
+  function drawCrystal(x,y,size,type=0){
+    // type: 0=cyan,1=yellow,2=red
+    const colors = ['#7dd3fc','#ffd166','#ff6b6b'];
+    const glow = ctx.createRadialGradient(x,y,0,x,y,size*2);
+    glow.addColorStop(0, colors[type]);
+    glow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(x,y,size*1.4,0,Math.PI*2); ctx.fill();
+
+    // faceted crystal
+    ctx.fillStyle = colors[type];
+    ctx.beginPath();
+    ctx.moveTo(x, y - size);
+    ctx.lineTo(x + size*0.5, y);
+    ctx.lineTo(x, y + size);
+    ctx.lineTo(x - size*0.5, y);
+    ctx.closePath();
+    ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1.0;
+  }
+
+  // --- Entities: rocks, bullets, power-ups ---
+  function makeRock(xOverride=null){
+    const size = Math.round(rand(20, 44));
+    const x = xOverride ?? rand(size, W - size);
+    const baseSpeed = rand(120, 260); // px/sec
+    return { x, y: -size, size, speed: baseSpeed * speedFactor, rot: rand(0,Math.PI*2), rotSpeed: rand(-2,2) };
+  }
+
+  function makePowerUp(){
+    const t = ['blaster','speed','slow'][Math.floor(Math.random()*3)];
+    const px = rand(40, W-40);
+    const py = rand(80, H/2);
+    return { x: px, y: py, type: t, radius: 12, bob: Math.random()*Math.PI*2 };
+  }
+
+  function rand(a,b){ return Math.random()*(b-a)+a; }
+  function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+
+  // --- Explosion start animation (landmine) ---
+  let playingIntro = false;
+  async function playIntroAndStart(){
+    if(playingIntro) return;
+    playingIntro = true;
+    // play explosion SFX & animate screen flash + shake
+    playExplosion();
+    const duration = 700; // ms
+    const start = performance.now();
+    // animate: flash -> dust -> spawn initial rocks
+    function frame(now){
+      const t = now - start;
+      // draw background with flash intensity
+      const flash = Math.max(0, 1 - (t/350));
+      const shake = (t < 500) ? (Math.sin(t/30)*6*(1 - t/700)) : 0;
+      renderFrame(shake, flash*0.9);
+      if(t < duration) requestAnimationFrame(frame);
+      else {
+        // spawn a few rocks immediately after explosion
+        for(let i=0;i<8;i++) rocks.push(makeRock(rand(30, W-30)));
+        lastTime = performance.now();
+        playingIntro = false;
+        running = true;
+        requestAnimationFrame(loop);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // --- Power-up activation / deactivation ---
+  function activatePower(type){
+    if(activePower) return; // no stacking
+    activePower = type;
+    activeTimer = POWER_DURATION;
+    if(type === 'speed'){ player.speed = player.baseSpeed * 1.9; activeEl.textContent = 'SPEED'; activeEl.style.color = '#ffd166'; }
+    if(type === 'slow'){ speedFactor *= 0.45; activeEl.textContent = 'SLOW'; activeEl.style.color = '#7dd3fc'; }
+    if(type === 'blaster'){ activeEl.textContent = 'BLASTER'; activeEl.style.color = '#ff6b6b'; }
+    playPickup();
+  }
+
+  function deactivatePower(){
+    if(!activePower) return;
+    if(activePower === 'speed') player.speed = player.baseSpeed;
+    if(activePower === 'slow') speedFactor = baseSpeedFactor;
+    if(activePower === 'blaster') { /* nothing special to revert besides timer */ }
+    activePower = null;
+    activeTimer = 0;
+    activeEl.textContent = '—';
+    activeEl.style.color = '#cbdaf1';
+  }
+
+  // --- Reset game (resets rock speed) ---
+  function resetGame(){
+    running = false; paused = false;
+    // store high score
+    if(score > highScore){ highScore = score; localStorage.setItem('dodgeHigh', String(highScore)); highScoreEl.textContent = highScore; }
+    const name = prompt('You died — enter name for leaderboard:', 'Player');
+    if(name) { saveToLeaderboard(name, score); updateLeaderboard(); }
+    // reset state
+    rocks = []; bullets = []; powerUps = [];
+    score = 0; dodged = 0; scoreEl.textContent = '0'; dodgedEl.textContent = '0';
+    speedFactor = baseSpeedFactor; spawnTimer = 0; spawnInterval = 900;
+    player.x = W/2; player.y = H - 60; player.speed = player.baseSpeed;
+    deactivatePower();
+    drawGameOverOverlay(false);
+  }
+
+  // --- Save leaderboard locally (top 5) ---
+  function saveToLeaderboard(name, sc){
+    let arr = JSON.parse(localStorage.getItem('dodgeBoard') || '[]');
+    arr.push({ name, score: sc });
+    arr.sort((a,b)=>b.score-a.score); arr = arr.slice(0,5);
+    localStorage.setItem('dodgeBoard', JSON.stringify(arr));
+  }
+  function updateLeaderboard(){
+    const arr = JSON.parse(localStorage.getItem('dodgeBoard') || '[]');
+    if(!arr.length) { lbEl.innerHTML = 'No scores yet.'; return; }
+    lbEl.innerHTML = arr.map((s,i)=>`${i+1}. ${escapeHtml(s.name)} — ${s.score}`).join('<br>');
+  }
+  function escapeHtml(t){ return t.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // --- Game rendering & loop ---
+  let overlayAlpha = 0;
+  function drawCrystalPowerup(p){
+    const colors = { blaster:'#ff6b6b', speed:'#ffd166', slow:'#7dd3fc' };
+    const col = colors[p.type] || '#fff';
+    // glow
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 26);
+    g.addColorStop(0, col);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x,p.y,20,0,Math.PI*2); ctx.fill();
+    // crystal shape
+    ctx.fillStyle = col; ctx.beginPath();
+    ctx.moveTo(p.x, p.y - 10); ctx.lineTo(p.x + 8, p.y); ctx.lineTo(p.x, p.y + 10); ctx.lineTo(p.x - 8, p.y); ctx.closePath();
+    ctx.fill();
+    // faint outline
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+
+  function drawRock(r){
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.rotate(r.rot);
+    // jagged polygon
+    ctx.beginPath();
+    const s = r.size;
+    ctx.moveTo(-s*0.5, -s*0.3);
+    ctx.lineTo(s*0.4, -s*0.45);
+    ctx.lineTo(s*0.5, s*0.2);
+    ctx.lineTo(s*0.1, s*0.5);
+    ctx.lineTo(-s*0.4, s*0.45);
+    ctx.closePath();
+    ctx.fillStyle = '#83756b';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPlayer(){
+    // glow
+    ctx.save();
+    ctx.beginPath(); ctx.fillStyle = 'rgba(70,198,255,0.06)'; ctx.arc(player.x, player.y+6, player.r+14,0,Math.PI*2); ctx.fill(); ctx.restore();
+    // body
+    ctx.save(); ctx.beginPath(); ctx.fillStyle = player.color; ctx.arc(player.x, player.y, player.r,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+
+  function renderFrame(shake=0, flash=0){
+    // shake offset
+    const ox = (Math.random()*2-1)*shake;
+    const oy = (Math.random()*2-1)*shake;
+
+    ctx.save();
+    ctx.translate(ox, oy);
+
+    // cave bg with slight offset
+    drawCaveBackground();
+
+    // draw rocks
+    for(const r of rocks) drawRock(r);
+    // draw powerups
+    for(const p of powerUps) drawCrystalPowerup(p);
+    // bullets
+    ctx.fillStyle = '#ffdca8';
+    for(const b of bullets) ctx.fillRect(b.x-2, b.y-8, 4, 10);
+
+    drawPlayer();
+
+    // HUD
+    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(8,8,160,44);
+    ctx.fillStyle = '#dbeefb'; ctx.font='14px system-ui,Segoe UI'; ctx.fillText('Score: '+score, 16, 28);
+    ctx.fillText('Rocks: '+rocks.length, 16, 46);
+
+    ctx.restore();
+
+    if(flash > 0.01){
+      ctx.fillStyle = `rgba(255,240,200,${flash})`;
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  function drawGameOverOverlay(show=true){
+    overlayAlpha = show ? 0.9 : 0.0;
+    ctx.save();
+    ctx.fillStyle = `rgba(0,0,0,${overlayAlpha})`;
+    ctx.fillRect(0,0,W,H);
+    if(show){
+      ctx.fillStyle = '#fff'; ctx.font='36px system-ui'; ctx.textAlign='center';
+      ctx.fillText('Game Over', W/2, H/2 - 30);
+      ctx.font='18px system-ui'; ctx.fillText('Click Restart to play again', W/2, H/2 + 10);
+    }
+    ctx.restore();
+  }
+
+  function loop(now){
+    if(!running || paused) return;
+    const dtMs = Math.min(40, now - lastTime);
+    lastTime = now;
+    const delta = dtMs / 1000;
+
+    // update score
+    score += Math.round(40 * delta);
+    scoreEl.textContent = score;
+
+    // difficulty ramp
+    speedFactor += 0.006 * delta * 60;
+    spawnInterval = Math.max(300, 900 - Math.floor(score * 0.6));
+
+    // movement (WASD + arrows)
+    let moveLeft = !!(keys['ArrowLeft'] || keys['a'] || keys['A']);
+    let moveRight = !!(keys['ArrowRight'] || keys['d'] || keys['D']);
+    let moveUp = !!(keys['ArrowUp'] || keys['w'] || keys['W']);
+    let moveDown = !!(keys['ArrowDown'] || keys['s'] || keys['S']);
+    let dir = 0;
+    if(moveLeft) dir -= 1;
+    if(moveRight) dir += 1;
+    player.x += dir * (player.speed * delta);
+    if(moveUp) player.y -= player.speed * delta;
+    if(moveDown) player.y += player.speed * delta;
+    player.x = clamp(player.x, player.r, W - player.r);
+    player.y = clamp(player.y, player.r + 30, H - player.r);
+
+    // anti-wall camping
+    if(player.x < 80 || player.x > W - 80) wallTime += delta;
+    else wallTime = Math.max(0, wallTime - delta*0.5);
+    if(wallTime > 2 && Math.random() < 0.08) {
+      const edgeX = player.x < W/2 ? rand(20,80) : rand(W-80, W-20);
+      rocks.push(makeRock(edgeX));
     }
 
-    function spawnPowerUp() {
-      const types = ['shoot', 'speed', 'slow'];
-      const type = types[Math.floor(Math.random() * types.length)];
-      powerUps.push({
-        x: Math.random() * (canvas.width - 20),
-        y: Math.random() * (canvas.height - 200),
-        type
-      });
+    // spawn rocks periodically
+    spawnTimer += dtMs;
+    if(spawnTimer >= spawnInterval){
+      spawnTimer = 0;
+      rocks.push(makeRock());
     }
 
-    function update() {
-      if (gameOver) return;
+    // spawn powerups occasionally (limit max on field)
+    if(Math.random() < 0.006 && powerUps.length < 3){
+      powerUps.push(makePowerUp());
+    }
 
-      // Movement
-      if (keys['ArrowLeft'] || keys['a']) player.x -= player.speed;
-      if (keys['ArrowRight'] || keys['d']) player.x += player.speed;
-      if (keys['ArrowUp'] || keys['w']) player.y -= player.speed;
-      if (keys['ArrowDown'] || keys['s']) player.y += player.speed;
-
-      // Boundaries
-      if (player.x < 0) player.x = 0;
-      if (player.x > canvas.width - player.size) player.x = canvas.width - player.size;
-      if (player.y < 0) player.y = 0;
-      if (player.y > canvas.height - player.size) player.y = canvas.height - player.size;
-
-      // Shooting
-      if (powerUpActive === 'shoot' && keys[' ']) {
-        if (bullets.length < 5) {
-          bullets.push({ x: player.x + player.size / 2, y: player.y, speed: 8 });
-        }
+    // update rocks
+    for(let i = rocks.length - 1; i >= 0; i--){
+      const r = rocks[i];
+      r.y += (r.speed * delta) * (activePower === 'slow' ? 0.55 : 1);
+      r.rot += r.rotSpeed * delta;
+      // collision with player
+      if(collides(player.x, player.y, player.r, r.x, r.y, r.size/2)){
+        // explosion sound and end
+        playHit();
+        running = false;
+        drawGameOverOverlay(true);
+        endSequence();
+        return;
       }
-
-      // Move bullets
-      bullets.forEach(b => b.y -= b.speed);
-      bullets = bullets.filter(b => b.y > 0);
-
-      // Spawn rocks
-      if (Math.random() < 0.03) spawnRock();
-
-      // Move rocks
-      rocks.forEach(r => r.y += r.speed);
-      rocks = rocks.filter(r => r.y < canvas.height + 20);
-
-      // Spawn power-ups occasionally
-      if (Math.random() < 0.002 && powerUps.length < 3) spawnPowerUp();
-
-      // Check bullet collisions
-      for (let i = 0; i < rocks.length; i++) {
-        for (let j = 0; j < bullets.length; j++) {
-          const dx = rocks[i].x - bullets[j].x;
-          const dy = rocks[i].y - bullets[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < rocks[i].size / 2) {
-            rocks.splice(i, 1);
-            bullets.splice(j, 1);
-            score += 5;
-            break;
-          }
-        }
+      if(r.y - r.size > H + 20){
+        rocks.splice(i,1);
+        dodged++; dodgedEl.textContent = dodged;
       }
+    }
 
-      // Check rock collisions with player
-      for (let r of rocks) {
-        const dx = r.x - player.x;
-        const dy = r.y - player.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < r.size / 2 + player.size / 2) {
-          resetGame();
-        }
-      }
-
-      // Check power-up pickups
-      for (let i = 0; i < powerUps.length; i++) {
-        const p = powerUps[i];
-        const dx = p.x - player.x;
-        const dy = p.y - player.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 20) {
-          activatePowerUp(p.type);
-          powerUps.splice(i, 1);
+    // bullets movement & collisions
+    for(let bi = bullets.length - 1; bi >= 0; bi--){
+      const b = bullets[bi];
+      b.y -= b.speed * delta;
+      if(b.y < -20){ bullets.splice(bi,1); continue; }
+      for(let ri = rocks.length - 1; ri >= 0; ri--){
+        const r = rocks[ri];
+        const dx = b.x - r.x, dy = b.y - r.y;
+        if(dx*dx + dy*dy < (r.size/2 + 4)*(r.size/2 + 4)){
+          // hit
+          rocks.splice(ri,1);
+          bullets.splice(bi,1);
+          playHit();
+          score += 8;
           break;
         }
       }
-
-      // Power-up timer
-      if (powerUpActive) {
-        powerUpTimer--;
-        if (powerUpTimer <= 0) {
-          deactivatePowerUp();
-        }
-      }
-
-      // Score increase
-      score++;
-      document.getElementById('score').textContent = score;
-
-      draw();
-      requestAnimationFrame(update);
     }
 
-    function activatePowerUp(type) {
-      if (powerUpActive) return; // can’t stack
-      powerUpActive = type;
-      powerUpTimer = 60 * 5; // 5 seconds
-
-      if (type === 'speed') player.speed *= 1.8;
-      if (type === 'slow') currentRockSpeed *= 0.5;
-    }
-
-    function deactivatePowerUp() {
-      if (powerUpActive === 'speed') player.speed /= 1.8;
-      if (powerUpActive === 'slow') currentRockSpeed = baseRockSpeed;
-      powerUpActive = null;
-    }
-
-    function resetGame() {
-      alert('You died! Final score: ' + score);
-      score = 0;
-      rocks = [];
-      bullets = [];
-      powerUps = [];
-      player.x = 400;
-      player.y = 550;
-      currentRockSpeed = baseRockSpeed;
-      powerUpActive = null;
-      powerUpTimer = 0;
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Player
-      ctx.fillStyle = player.color;
-      ctx.fillRect(player.x, player.y, player.size, player.size);
-
-      // Rocks
-      ctx.fillStyle = 'gray';
-      for (let r of rocks) {
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Bullets
-      ctx.fillStyle = 'red';
-      for (let b of bullets) {
-        ctx.fillRect(b.x - 2, b.y - 10, 4, 10);
-      }
-
-      // Power-ups
-      for (let p of powerUps) {
-        ctx.beginPath();
-        ctx.fillStyle = p.type === 'shoot' ? 'red' : p.type === 'speed' ? 'yellow' : 'cyan';
-        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
-        ctx.fill();
+    // power-up pickup detection
+    for(let pi = powerUps.length - 1; pi >= 0; pi--){
+      const p = powerUps[pi];
+      p.bob += 0.08;
+      p.y += Math.sin(p.bob) * 0.2;
+      const dx = p.x - player.x, dy = p.y - player.y;
+      if(dx*dx + dy*dy < (player.r + p.radius)*(player.r + p.radius)){
+        activatePower(p.type);
+        powerUps.splice(pi,1);
       }
     }
 
-    update();
-  </script>
+    // active power timer
+    if(activePower){
+      activeTimer--;
+      activeEl.textContent = `${activePower.toUpperCase()} (${Math.ceil(activeTimer/60)}s)`;
+      if(activeTimer <= 0) deactivatePower();
+    }
+
+    // shooting input (space) - throttle bullets
+    if(activePower === 'blaster' && (keys[' '] || keys['Spacebar'] || keys['Space'])) {
+      // implement simple cooldown per frame: allow 6 bullets/s
+      if(!bullets._cooldown || bullets._cooldown <= 0){
+        bullets.push({ x: player.x, y: player.y - 14, speed: 480 });
+        playShoot();
+        bullets._cooldown = 10; // frames
+      }
+    }
+    // cooldown decrement
+    if(bullets._cooldown) bullets._cooldown--;
+
+    // draw
+    renderFrame();
+
+    // increment score display
+    scoreEl.textContent = score;
+
+    requestAnimationFrame(loop);
+  }
+
+  // end-of-game sequence (reset speeds after short delay)
+  function endSequence(){
+    // small explosion flash & sound
+    playExplosion();
+    setTimeout(() => {
+      // reset rock speed and prompt/save
+      resetGame();
+      updateLeaderboard();
+    }, 600);
+  }
+
+  // collision helper
+  function collides(ax,ay,ar,bx,by,br){
+    const dx = ax-bx, dy = ay-by;
+    return (dx*dx + dy*dy) <= (ar+br)*(ar+br);
+  }
+
+  // UI button wiring
+  startBtn.addEventListener('click', ()=>{
+    // start audio on user gesture
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+    if(!running) {
+      // play intro explosion then start dropping rocks
+      playIntroAndStart();
+    }
+  });
+  pauseBtn.addEventListener('click', ()=>{
+    if(!running) return;
+    paused = !paused;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    if(!paused){
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+  });
+  restartBtn.addEventListener('click', ()=>{
+    resetGame();
+    running = false;
+    // start fresh w/ intro
+    playIntroAndStart();
+  });
+
+  // initial idle draw
+  drawCaveBackground();
+  ctx.fillStyle = '#9bbfdb';
+  ctx.font = '20px system-ui';
+  ctx.fillText('Press Start to play', 16, 34);
+
+  // helpers: small random utilities
+  function draw(){} // placeholder
+
+  // save & load leaderboard UI (call after resetting)
+  function updateLeaderboard(){ 
+    const arr = JSON.parse(localStorage.getItem('dodgeBoard') || '[]');
+    if(!arr.length) lbEl.innerHTML = 'No scores yet.';
+    else lbEl.innerHTML = arr.map((s,i)=>`${i+1}. ${escapeHtml(s.name)} — ${s.score}`).join('<br>');
+  }
+
+  // initial leaderboard populate
+  updateLeaderboard();
+
+  // expose some debug (optional)
+  window.__dodge = { resetGame, makeRock, activatePower };
+
+  // end of IIFE
+})();
+</script>
 </body>
 </html>
