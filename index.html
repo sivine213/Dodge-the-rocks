@@ -5,123 +5,155 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Dodge the Rocks</title>
 <style>
-  :root{
-    --bg:#0f1724;
-    --panel:#0b1220aa;
-    --accent:#f59e0b;
-    --text:#e6eef8;
-  }
-  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-  body{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: linear-gradient(180deg,#071025 0%, #0f1724 100%);
-    color:var(--text);
+  :root {
+    --bg: #0f1724;
+    --panel: #0b1220aa;
+    --accent: #f59e0b;
+    --text: #e6eef8;
   }
 
-  .game-wrap{
-    width:min(760px,94vw);
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #071025 0%, #0f1724 100%);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .game-wrap {
+    width: min(900px, 96vw);
     background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border-radius:14px;
-    padding:12px;
+    border-radius: 16px;
+    padding: 16px;
     box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
-    display:grid;
-    grid-template-columns: 1fr 240px;
-    gap:12px;
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 16px;
   }
 
-  .panel{
-    background:var(--panel);
-    border-radius:10px;
-    padding:10px;
-    box-sizing:border-box;
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 12px;
+    box-sizing: border-box;
   }
 
-  canvas{
-    display:block;
-    width:100%;
-    height:480px;
-    border-radius:8px;
+  canvas {
+    display: block;
+    width: 100%;
+    height: 540px;
+    border-radius: 10px;
     background: linear-gradient(180deg,#071428 0%, #02101b 100%);
     box-shadow: inset 0 2px 12px rgba(0,0,0,0.6);
   }
 
-  .sidebar{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    align-items:stretch;
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  h1{font-size:18px;margin:0 0 6px 0}
-  .stats{display:flex;flex-direction:column;gap:8px}
-  .stat{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:6px;background:linear-gradient(90deg, rgba(255,255,255,0.01), transparent);font-weight:600}
-  button{
-    background: linear-gradient(180deg,var(--accent), #c77b06);
-    color:#00110a;border:none;padding:10px;border-radius:8px;font-weight:700;cursor:pointer;
+  h1 {
+    font-size: 20px;
+    margin: 0 0 8px 0;
+    text-align: center;
+  }
+
+  .stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), transparent);
+    font-weight: 600;
+  }
+
+  button {
+    background: linear-gradient(180deg, var(--accent), #c77b06);
+    color: #00110a;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
     box-shadow: 0 6px 12px rgba(0,0,0,0.35);
   }
-  button.secondary{
-    background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text);box-shadow:none;padding:8px;
+
+  button.secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text);
+    box-shadow: none;
+    padding: 8px;
   }
 
-  .controls{display:flex;gap:8px;flex-wrap:wrap}
-  .help{font-size:13px;color:#a7b6cf;padding:6px;background:linear-gradient(180deg, transparent, rgba(255,255,255,0.01));border-radius:6px}
-  .footer{font-size:12px;color:#9fb0d1;text-align:center;margin-top:auto}
-  @media (max-width:720px){
-    .game-wrap{grid-template-columns:1fr;grid-auto-rows:auto}
-    canvas{height:380px}
+  .footer {
+    font-size: 12px;
+    color: #9fb0d1;
+    text-align: center;
+    margin-top: auto;
+  }
+
+  @media (max-width: 780px) {
+    .game-wrap {
+      grid-template-columns: 1fr;
+      grid-auto-rows: auto;
+    }
+    canvas {
+      height: 420px;
+    }
   }
 </style>
 </head>
 <body>
-  <div class="game-wrap">
-    <div class="panel">
-      <h1>Dodge the Rocks</h1>
-      <canvas id="game" width="800" height="480" aria-label="Dodge the Rocks game"></canvas>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button id="startBtn">Start</button>
-        <button id="pauseBtn" class="secondary">Pause</button>
-        <button id="restartBtn" class="secondary">Restart</button>
-        <div style="flex:1"></div>
-        <div style="align-self:center;color:#a7b6cf;font-weight:600">Use ← → or A / D (touch supported)</div>
-      </div>
+<div class="game-wrap">
+  <div class="panel">
+    <h1>Dodge the Rocks</h1>
+    <canvas id="game" width="800" height="540"></canvas>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn" class="secondary">Pause</button>
+      <button id="restartBtn" class="secondary">Restart</button>
     </div>
-
-    <div class="panel sidebar">
-      <div class="stats">
-        <div class="stat"><span>Score</span><span id="score">0</span></div>
-        <div class="stat"><span>High Score</span><span id="highScore">0</span></div>
-        <div class="stat"><span>Rocks Dodged</span><span id="dodged">0</span></div>
-        <div class="stat"><span>Difficulty</span><span id="difficulty">Easy</span></div>
-      </div>
-
-      <div style="margin-top:6px">
-        <div class="help">
-          Move the player left and right to avoid falling rocks. The longer you survive, the faster rocks fall.
-        </div>
-      </div>
-
-      <div style="margin-top:8px">
-        <label style="font-size:13px;color:#a7b6cf">Touch Controls</label>
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <button id="leftTouch" class="secondary">◀</button>
-          <button id="rightTouch" class="secondary">▶</button>
-        </div>
-      </div>
-
-      <div class="footer">Made with plain HTML/JS — save as index.html and open in your browser</div>
+    <div style="text-align:center;color:#a7b6cf;font-weight:600;margin-top:6px;">
+      Use ← → or A / D (touch supported)
     </div>
   </div>
 
+  <div class="panel sidebar">
+    <div class="stats">
+      <div class="stat"><span>Score</span><span id="score">0</span></div>
+      <div class="stat"><span>High Score</span><span id="highScore">0</span></div>
+      <div class="stat"><span>Rocks Dodged</span><span id="dodged">0</span></div>
+      <div class="stat"><span>Difficulty</span><span id="difficulty">Easy</span></div>
+    </div>
+
+    <h3 style="margin-top:8px;margin-bottom:4px;">Leaderboard</h3>
+    <div id="leaderboard" style="font-size:14px;color:#cbdaf1;line-height:1.6;"></div>
+
+    <div class="footer">Made with plain HTML/JS</div>
+  </div>
+</div>
+
 <script>
 (() => {
-  // Canvas & context
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
 
-  // UI elements
   const startBtn = document.getElementById('startBtn');
   const pauseBtn = document.getElementById('pauseBtn');
   const restartBtn = document.getElementById('restartBtn');
@@ -129,87 +161,53 @@
   const highScoreEl = document.getElementById('highScore');
   const dodgedEl = document.getElementById('dodged');
   const difficultyEl = document.getElementById('difficulty');
-  const leftTouch = document.getElementById('leftTouch');
-  const rightTouch = document.getElementById('rightTouch');
+  const leaderboardEl = document.getElementById('leaderboard');
 
-  // Game state
   let w = canvas.width, h = canvas.height;
   let keys = { left:false, right:false };
-  let touchState = { left:false, right:false };
-  let running = false;
-  let paused = false;
-  let lastTime = 0;
-  let spawnTimer = 0;
-  let spawnInterval = 1000; // ms
+  let running = false, paused = false;
+  let lastTime = 0, spawnTimer = 0, spawnInterval = 1000;
   let rocks = [];
-  let score = 0;
-  let dodged = 0;
-  let speedFactor = 1;
+  let score = 0, dodged = 0, speedFactor = 1;
+  let wallTime = 0;
+
   let highScore = Number(localStorage.getItem('dodgeHigh') || 0);
-
   highScoreEl.textContent = highScore;
+  updateLeaderboard();
 
-  // Player
-  const player = {
-    x: w/2,
-    y: h - 40,
-    radius: 18,
-    speed: 380, // px/sec
-    color: '#46c6ff'
-  };
+  const player = { x: w/2, y: h - 40, radius: 18, speed: 380, color: '#46c6ff' };
 
-  // Helpers
   const rand = (a,b) => Math.random()*(b-a)+a;
   const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 
-  // Resize support (keeps logical canvas same width but display may scale)
-  function resizeCanvas(){
-    // we keep canvas pixel dimensions fixed; CSS scales it. Could adapt if wanted.
-    w = canvas.width;
-    h = canvas.height;
-    player.y = h - 40;
-  }
-
-  // Rock class
-  function makeRock(){
-    const size = Math.round(rand(12, 36));
-    const x = rand(size, w - size);
+  function makeRock(xOverride=null){
+    const size = Math.round(rand(14, 38));
+    const x = xOverride ?? rand(size, w - size);
     const baseSpeed = rand(120, 250);
     return { x, y: -size, size, speed: baseSpeed * speedFactor, rotation: rand(0,Math.PI*2), rotSpeed: rand(-2,2) };
   }
 
-  // Input
-  window.addEventListener('keydown', e => {
-    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
-    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
-    if(e.key === ' '){ // space toggles pause
-      togglePause();
-    }
-  });
-  window.addEventListener('keyup', e => {
-    if(e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
-    if(e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
-  });
+  function updateLeaderboard() {
+    const scores = JSON.parse(localStorage.getItem('dodgeBoard') || '[]');
+    leaderboardEl.innerHTML = scores.length
+      ? scores.map((s,i)=>`${i+1}. ${s.name} — ${s.score}`).join('<br>')
+      : 'No scores yet.';
+  }
 
-  // Touch buttons
-  leftTouch.addEventListener('touchstart', e => { e.preventDefault(); touchState.left = true; });
-  leftTouch.addEventListener('touchend', e => { e.preventDefault(); touchState.left = false; });
-  rightTouch.addEventListener('touchstart', e => { e.preventDefault(); touchState.right = true; });
-  rightTouch.addEventListener('touchend', e => { e.preventDefault(); touchState.right = false; });
-
-  // Buttons
-  startBtn.addEventListener('click', startGame);
-  pauseBtn.addEventListener('click', togglePause);
-  restartBtn.addEventListener('click', restartGame);
+  function saveToLeaderboard(name, score) {
+    let scores = JSON.parse(localStorage.getItem('dodgeBoard') || '[]');
+    scores.push({ name, score });
+    scores.sort((a,b)=>b.score-a.score);
+    scores = scores.slice(0,5);
+    localStorage.setItem('dodgeBoard', JSON.stringify(scores));
+    updateLeaderboard();
+  }
 
   function startGame(){
     if(running) return;
     resetGame();
-    running = true;
-    paused = false;
+    running = true; paused = false;
     lastTime = performance.now();
-    spawnInterval = 1000;
-    speedFactor = 1;
     requestAnimationFrame(loop);
   }
 
@@ -230,121 +228,98 @@
   }
 
   function resetGame(){
-    rocks = [];
-    score = 0;
-    dodged = 0;
-    spawnTimer = 0;
-    scoreEl.textContent = '0';
-    dodgedEl.textContent = '0';
-    difficultyEl.textContent = 'Easy';
-    pauseBtn.textContent = 'Pause';
-    player.x = w/2;
+    rocks = []; score = 0; dodged = 0; spawnTimer = 0;
+    scoreEl.textContent = '0'; dodgedEl.textContent = '0';
+    difficultyEl.textContent = 'Easy'; pauseBtn.textContent = 'Pause';
+    player.x = w/2; wallTime = 0;
   }
 
   function endGame(){
-    running = false;
-    paused = false;
-    if(score > highScore){ highScore = score; localStorage.setItem('dodgeHigh', String(highScore)); highScoreEl.textContent = highScore; }
-    // show game over overlay
+    running = false; paused = false;
+    if(score > highScore){
+      highScore = score;
+      localStorage.setItem('dodgeHigh', String(highScore));
+      highScoreEl.textContent = highScore;
+    }
+    const name = prompt("Game Over! Enter your name for the leaderboard:", "Player");
+    if(name){
+      saveToLeaderboard(name, score);
+    }
     drawGameOver();
   }
 
-  // Collision detection (circle vs circle)
-  function collides(aX,aY,aR,bX,bY,bR){
-    const dx = aX - bX;
-    const dy = aY - bY;
-    return (dx*dx + dy*dy) <= (aR + bR)*(aR + bR);
+  function collides(ax,ay,ar,bx,by,br){
+    const dx = ax-bx, dy = ay-by;
+    return (dx*dx + dy*dy) <= (ar+br)*(ar+br);
   }
 
-  // Main loop
   function loop(now){
     if(!running || paused) return;
-    const dt = Math.min(40, now - lastTime); // ms, cap for stability
+    const dt = Math.min(40, now - lastTime);
     lastTime = now;
-
     update(dt/1000);
     render();
-
     requestAnimationFrame(loop);
   }
 
   function update(delta){
-    // update score and difficulty
-    score += Math.round(60 * delta); // roughly per-frame-ish scoring
+    score += Math.round(60 * delta);
     scoreEl.textContent = score;
 
-    // gradually increase difficulty
-    speedFactor += 0.005 * delta * 60; // small ramp
-    spawnInterval = Math.max(300, 1000 - score * 0.8); // faster spawns over time
+    speedFactor += 0.005 * delta * 60;
+    spawnInterval = Math.max(300, 1000 - score * 0.8);
 
     if(score < 500) difficultyEl.textContent = 'Easy';
     else if(score < 1500) difficultyEl.textContent = 'Medium';
     else difficultyEl.textContent = 'Hard';
 
-    // move player
-    const moveLeft = keys.left || touchState.left;
-    const moveRight = keys.right || touchState.right;
     let moveDir = 0;
-    if(moveLeft) moveDir -= 1;
-    if(moveRight) moveDir += 1;
+    if(keys.left) moveDir -= 1;
+    if(keys.right) moveDir += 1;
     player.x += moveDir * player.speed * delta;
     player.x = clamp(player.x, player.radius, w - player.radius);
 
-    // spawn rocks
+    // anti-wall camping
+    if(player.x < 80 || player.x > w - 80) wallTime += delta;
+    else wallTime = Math.max(0, wallTime - delta*0.5);
+
+    // if camping too long -> spawn edge rocks
+    if(wallTime > 2){
+      if(Math.random() < 0.1){
+        const edgeX = player.x < w/2 ? rand(10,80) : rand(w-80,w-10);
+        rocks.push(makeRock(edgeX));
+      }
+    }
+
     spawnTimer += delta*1000;
     if(spawnTimer >= spawnInterval){
       spawnTimer = 0;
       rocks.push(makeRock());
     }
 
-    // update rocks
-    for(let i = rocks.length - 1; i >= 0; i--){
+    for(let i=rocks.length-1;i>=0;i--){
       const r = rocks[i];
       r.y += r.speed * delta;
       r.rotation += r.rotSpeed * delta;
-      // check collision
       if(collides(player.x, player.y, player.radius, r.x, r.y, r.size/2)){
         endGame();
         return;
       }
-      // passed bottom
       if(r.y - r.size > h){
         rocks.splice(i,1);
-        dodged++;
-        dodgedEl.textContent = dodged;
+        dodged++; dodgedEl.textContent = dodged;
       }
     }
   }
 
-  // Drawing helpers
-  function clear(){
-    ctx.clearRect(0,0,w,h);
-  }
+  function clear(){ ctx.clearRect(0,0,w,h); }
 
   function drawPlayer(){
-    // glow
     ctx.save();
-    ctx.beginPath();
-    ctx.fillStyle = '#082233';
-    ctx.arc(player.x, player.y+8, player.radius+12, 0, Math.PI*2);
-    ctx.fill();
-    ctx.restore();
-
-    // body
-    ctx.save();
-    ctx.beginPath();
-    ctx.fillStyle = player.color;
-    ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
-    ctx.fill();
-
-    // face (simple)
-    ctx.beginPath();
-    ctx.fillStyle = '#001a2a';
-    ctx.arc(player.x-6, player.y-3, 3, 0, Math.PI*2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(player.x+6, player.y-3, 3, 0, Math.PI*2);
-    ctx.fill();
+    ctx.beginPath(); ctx.fillStyle = '#082233';
+    ctx.arc(player.x, player.y+8, player.radius+12, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.fillStyle = player.color;
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
@@ -352,87 +327,58 @@
     ctx.save();
     ctx.translate(r.x, r.y);
     ctx.rotate(r.rotation);
-    // rock body
-    ctx.beginPath();
     const s = r.size;
+    ctx.beginPath();
     ctx.moveTo(-s/2, -s/2);
     ctx.lineTo( s/2, -s/4);
     ctx.lineTo( s/3, s/2);
     ctx.lineTo(-s/3, s/2);
-    ctx.lineTo(-s/2, -s/6);
     ctx.closePath();
     ctx.fillStyle = '#83756b';
-    ctx.fill();
-    // shadow
-    ctx.beginPath();
-    ctx.ellipse(0, s*0.65, s*0.6, s*0.18, 0, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
     ctx.fill();
     ctx.restore();
   }
 
   function render(){
     clear();
-    // background stars
-    for(let i=0;i<20;i++){
-      // subtle static background stars (drawn lightly)
-    }
-    // draw rocks
     for(const r of rocks) drawRock(r);
-    // draw player
     drawPlayer();
-
-    // draw HUD top-left
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(8,8,180,34);
-    ctx.fillStyle = '#dbeefb';
-    ctx.font = '14px system-ui,Segoe UI,sans-serif';
-    ctx.fillText('Score: '+score, 16, 28);
-    ctx.restore();
   }
 
   function drawGameOver(){
-    // darken
     ctx.save();
     ctx.fillStyle = 'rgba(0,0,0,0.54)';
     ctx.fillRect(0,0,w,h);
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
-    ctx.font = '36px system-ui,Segoe UI,sans-serif';
+    ctx.font = '36px system-ui';
     ctx.fillText('Game Over', w/2, h/2 - 30);
-    ctx.font = '18px system-ui,Segoe UI,sans-serif';
+    ctx.font = '18px system-ui';
     ctx.fillText('Score: ' + score, w/2, h/2 + 2);
     ctx.fillText('Rocks dodged: ' + dodged, w/2, h/2 + 28);
-    ctx.font = '14px system-ui,Segoe UI,sans-serif';
+    ctx.font = '14px system-ui';
     ctx.fillStyle = '#cbdaf1';
     ctx.fillText('Click Restart to play again', w/2, h/2 + 60);
     ctx.restore();
   }
 
-  // Initial small demo movement so canvas isn't empty until start
-  function idleDraw(){
-    clear();
-    ctx.save();
-    ctx.fillStyle = '#9bbfdb';
-    ctx.font = '20px system-ui,Segoe UI,sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('Press Start to play', 16, 34);
-    ctx.restore();
-  }
-  idleDraw();
-
-  // Make sure canvas size constants set (already set in HTML width/height)
-  resizeCanvas();
-
-  // Offer keyboard hints on focus
-  canvas.addEventListener('click', ()=> {
-    canvas.focus();
+  window.addEventListener('keydown', e=>{
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=true;
+    if(e.key===' ') togglePause();
+  });
+  window.addEventListener('keyup', e=>{
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=false;
   });
 
-  // Expose for debug (optional)
-  window.__dodge = { startGame, restartGame, endGame, getScore:()=>score };
+  startBtn.addEventListener('click', startGame);
+  pauseBtn.addEventListener('click', togglePause);
+  restartBtn.addEventListener('click', restartGame);
 
+  ctx.fillStyle = '#9bbfdb';
+  ctx.font = '20px system-ui';
+  ctx.fillText('Press Start to play', 16, 34);
 })();
 </script>
 </body>
