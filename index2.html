@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dodge the Rocks</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(circle, #0b0b1e, #000);
+      color: white;
+      font-family: sans-serif;
+    }
+    #gameCanvas {
+      display: block;
+      margin: 0 auto;
+      background: #111;
+      border: 3px solid white;
+      border-radius: 15px;
+    }
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 20px;
+    }
+    .powerup {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      position: absolute;
+    }
+    .shoot { background: red; }
+    .speed { background: yellow; }
+    .slow { background: cyan; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
+  <div id="hud">Score: <span id="score">0</span></div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const player = { x: 400, y: 550, size: 20, speed: 5, color: 'lime' };
+    let rocks = [];
+    let bullets = [];
+    let powerUps = [];
+    let score = 0;
+    let gameOver = false;
+    let baseRockSpeed = 2;
+    let currentRockSpeed = baseRockSpeed;
+    let powerUpActive = null;
+    let powerUpTimer = 0;
+
+    // Controls
+    const keys = {};
+    window.addEventListener('keydown', e => keys[e.key] = true);
+    window.addEventListener('keyup', e => keys[e.key] = false);
+
+    function spawnRock() {
+      rocks.push({
+        x: Math.random() * canvas.width,
+        y: -20,
+        size: 20 + Math.random() * 15,
+        speed: currentRockSpeed + Math.random() * 2
+      });
+    }
+
+    function spawnPowerUp() {
+      const types = ['shoot', 'speed', 'slow'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      powerUps.push({
+        x: Math.random() * (canvas.width - 20),
+        y: Math.random() * (canvas.height - 200),
+        type
+      });
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      // Movement
+      if (keys['ArrowLeft'] || keys['a']) player.x -= player.speed;
+      if (keys['ArrowRight'] || keys['d']) player.x += player.speed;
+      if (keys['ArrowUp'] || keys['w']) player.y -= player.speed;
+      if (keys['ArrowDown'] || keys['s']) player.y += player.speed;
+
+      // Boundaries
+      if (player.x < 0) player.x = 0;
+      if (player.x > canvas.width - player.size) player.x = canvas.width - player.size;
+      if (player.y < 0) player.y = 0;
+      if (player.y > canvas.height - player.size) player.y = canvas.height - player.size;
+
+      // Shooting
+      if (powerUpActive === 'shoot' && keys[' ']) {
+        if (bullets.length < 5) {
+          bullets.push({ x: player.x + player.size / 2, y: player.y, speed: 8 });
+        }
+      }
+
+      // Move bullets
+      bullets.forEach(b => b.y -= b.speed);
+      bullets = bullets.filter(b => b.y > 0);
+
+      // Spawn rocks
+      if (Math.random() < 0.03) spawnRock();
+
+      // Move rocks
+      rocks.forEach(r => r.y += r.speed);
+      rocks = rocks.filter(r => r.y < canvas.height + 20);
+
+      // Spawn power-ups occasionally
+      if (Math.random() < 0.002 && powerUps.length < 3) spawnPowerUp();
+
+      // Check bullet collisions
+      for (let i = 0; i < rocks.length; i++) {
+        for (let j = 0; j < bullets.length; j++) {
+          const dx = rocks[i].x - bullets[j].x;
+          const dy = rocks[i].y - bullets[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < rocks[i].size / 2) {
+            rocks.splice(i, 1);
+            bullets.splice(j, 1);
+            score += 5;
+            break;
+          }
+        }
+      }
+
+      // Check rock collisions with player
+      for (let r of rocks) {
+        const dx = r.x - player.x;
+        const dy = r.y - player.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < r.size / 2 + player.size / 2) {
+          resetGame();
+        }
+      }
+
+      // Check power-up pickups
+      for (let i = 0; i < powerUps.length; i++) {
+        const p = powerUps[i];
+        const dx = p.x - player.x;
+        const dy = p.y - player.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 20) {
+          activatePowerUp(p.type);
+          powerUps.splice(i, 1);
+          break;
+        }
+      }
+
+      // Power-up timer
+      if (powerUpActive) {
+        powerUpTimer--;
+        if (powerUpTimer <= 0) {
+          deactivatePowerUp();
+        }
+      }
+
+      // Score increase
+      score++;
+      document.getElementById('score').textContent = score;
+
+      draw();
+      requestAnimationFrame(update);
+    }
+
+    function activatePowerUp(type) {
+      if (powerUpActive) return; // can’t stack
+      powerUpActive = type;
+      powerUpTimer = 60 * 5; // 5 seconds
+
+      if (type === 'speed') player.speed *= 1.8;
+      if (type === 'slow') currentRockSpeed *= 0.5;
+    }
+
+    function deactivatePowerUp() {
+      if (powerUpActive === 'speed') player.speed /= 1.8;
+      if (powerUpActive === 'slow') currentRockSpeed = baseRockSpeed;
+      powerUpActive = null;
+    }
+
+    function resetGame() {
+      alert('You died! Final score: ' + score);
+      score = 0;
+      rocks = [];
+      bullets = [];
+      powerUps = [];
+      player.x = 400;
+      player.y = 550;
+      currentRockSpeed = baseRockSpeed;
+      powerUpActive = null;
+      powerUpTimer = 0;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Player
+      ctx.fillStyle = player.color;
+      ctx.fillRect(player.x, player.y, player.size, player.size);
+
+      // Rocks
+      ctx.fillStyle = 'gray';
+      for (let r of rocks) {
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, r.size / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Bullets
+      ctx.fillStyle = 'red';
+      for (let b of bullets) {
+        ctx.fillRect(b.x - 2, b.y - 10, 4, 10);
+      }
+
+      // Power-ups
+      for (let p of powerUps) {
+        ctx.beginPath();
+        ctx.fillStyle = p.type === 'shoot' ? 'red' : p.type === 'speed' ? 'yellow' : 'cyan';
+        ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    update();
+  </script>
+</body>
+</html>
