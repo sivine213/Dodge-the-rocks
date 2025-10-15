@@ -1,230 +1,385 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dodge the Rocks+</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: radial-gradient(circle, #0b0b24, #000);
-      overflow: hidden;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    #gameContainer {
-      position: relative;
-      margin: 30px auto;
-      border: 3px solid white;
-      width: 700px;
-      height: 500px;
-      overflow: hidden;
-      background: linear-gradient(to bottom, #111, #222);
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dodge the Rocks</title>
+<style>
+  :root {
+    --bg: #0f1724;
+    --panel: #0b1220aa;
+    --accent: #f59e0b;
+    --text: #e6eef8;
+  }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #071025 0%, #0f1724 100%);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  .game-wrap {
+    width: min(900px, 96vw);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 16px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 540px;
+    border-radius: 10px;
+    background: linear-gradient(180deg,#071428 0%, #02101b 100%);
+    box-shadow: inset 0 2px 12px rgba(0,0,0,0.6);
+  }
+
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 20px;
+    margin: 0 0 8px 0;
+    text-align: center;
+  }
+
+  .stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.02), transparent);
+    font-weight: 600;
+  }
+
+  button {
+    background: linear-gradient(180deg, var(--accent), #c77b06);
+    color: #00110a;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.35);
+  }
+
+  button.secondary {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: var(--text);
+    box-shadow: none;
+    padding: 8px;
+  }
+
+  .footer {
+    font-size: 12px;
+    color: #9fb0d1;
+    text-align: center;
+    margin-top: auto;
+  }
+
+  @media (max-width: 780px) {
+    .game-wrap {
+      grid-template-columns: 1fr;
+      grid-auto-rows: auto;
     }
     canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
+      height: 420px;
     }
-    #ui {
-      margin-top: 10px;
-    }
-    button {
-      padding: 10px 20px;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover { background: #005fcc; }
-  </style>
+  }
+</style>
 </head>
 <body>
-  <h1>Dodge the Rocks+</h1>
-  <div id="gameContainer">
-    <canvas id="game" width="700" height="500"></canvas>
+<div class="game-wrap">
+  <div class="panel">
+    <h1>Dodge the Rocks</h1>
+    <canvas id="game" width="800" height="540"></canvas>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn" class="secondary">Pause</button>
+      <button id="restartBtn" class="secondary">Restart</button>
+    </div>
+    <div style="text-align:center;color:#a7b6cf;font-weight:600;margin-top:6px;">
+      Use ← → or A / D (touch supported)
+    </div>
   </div>
-  <div id="ui">
-    <p>Use arrow keys to move. Space to shoot (if you have the power-up).</p>
-    <button id="startBtn">Start Game</button>
+
+  <div class="panel sidebar">
+    <div class="stats">
+      <div class="stat"><span>Score</span><span id="score">0</span></div>
+      <div class="stat"><span>High Score</span><span id="highScore">0</span></div>
+      <div class="stat"><span>Rocks Dodged</span><span id="dodged">0</span></div>
+      <div class="stat"><span>Difficulty</span><span id="difficulty">Easy</span></div>
+    </div>
+
+    <h3 style="margin-top:8px;margin-bottom:4px;">Leaderboard</h3>
+    <div id="leaderboard" style="font-size:14px;color:#cbdaf1;line-height:1.6;"></div>
+
+    <div class="footer">Made with plain HTML/JS</div>
   </div>
+</div>
 
-  <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    const startBtn = document.getElementById("startBtn");
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
 
-    const player = { x: 330, y: 450, size: 30, speed: 5, color: "lime", canShoot: false };
-    let rocks = [], bullets = [], powerUps = [];
-    let score = 0, gameOver = false, gameRunning = false;
-    let rockSpeed = 3, powerTimers = { speed: 0, slow: 0 };
+  const startBtn = document.getElementById('startBtn');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const restartBtn = document.getElementById('restartBtn');
+  const scoreEl = document.getElementById('score');
+  const highScoreEl = document.getElementById('highScore');
+  const dodgedEl = document.getElementById('dodged');
+  const difficultyEl = document.getElementById('difficulty');
+  const leaderboardEl = document.getElementById('leaderboard');
 
-    const keys = {};
-    document.addEventListener("keydown", e => keys[e.key] = true);
-    document.addEventListener("keyup", e => keys[e.key] = false);
+  let w = canvas.width, h = canvas.height;
+  let keys = { left:false, right:false };
+  let running = false, paused = false;
+  let lastTime = 0, spawnTimer = 0, spawnInterval = 1000;
+  let rocks = [];
+  let score = 0, dodged = 0, speedFactor = 1;
+  let wallTime = 0;
 
-    function resetGame() {
-      player.x = 330;
-      player.y = 450;
-      rocks = [];
-      bullets = [];
-      powerUps = [];
-      score = 0;
-      rockSpeed = 3;
-      player.canShoot = false;
-      powerTimers = { speed: 0, slow: 0 };
-      gameOver = false;
-    }
+  let highScore = Number(localStorage.getItem('dodgeHigh') || 0);
+  highScoreEl.textContent = highScore;
+  updateLeaderboard();
 
-    function spawnRock() {
-      rocks.push({
-        x: Math.random() * (canvas.width - 20),
-        y: -20,
-        size: 20 + Math.random() * 20,
-      });
-    }
+  const player = { x: w/2, y: h - 40, radius: 18, speed: 380, color: '#46c6ff' };
 
-    function spawnPowerUp() {
-      const types = ["shoot", "speed", "slow"];
-      const type = types[Math.floor(Math.random() * types.length)];
-      powerUps.push({
-        x: Math.random() * (canvas.width - 20),
-        y: -20,
-        size: 20,
-        type
-      });
-    }
+  const rand = (a,b) => Math.random()*(b-a)+a;
+  const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 
-    function drawPlayer() {
-      ctx.fillStyle = player.color;
-      ctx.fillRect(player.x, player.y, player.size, player.size);
-    }
+  function makeRock(xOverride=null){
+    const size = Math.round(rand(14, 38));
+    const x = xOverride ?? rand(size, w - size);
+    const baseSpeed = rand(120, 250);
+    return { x, y: -size, size, speed: baseSpeed * speedFactor, rotation: rand(0,Math.PI*2), rotSpeed: rand(-2,2) };
+  }
 
-    function drawRocks() {
-      ctx.fillStyle = "gray";
-      rocks.forEach(r => ctx.fillRect(r.x, r.y, r.size, r.size));
-    }
+  function updateLeaderboard() {
+    const scores = JSON.parse(localStorage.getItem('dodgeBoard') || '[]');
+    leaderboardEl.innerHTML = scores.length
+      ? scores.map((s,i)=>`${i+1}. ${s.name} — ${s.score}`).join('<br>')
+      : 'No scores yet.';
+  }
 
-    function drawBullets() {
-      ctx.fillStyle = "yellow";
-      bullets.forEach(b => ctx.fillRect(b.x, b.y, 4, 10));
-    }
+  function saveToLeaderboard(name, score) {
+    let scores = JSON.parse(localStorage.getItem('dodgeBoard') || '[]');
+    scores.push({ name, score });
+    scores.sort((a,b)=>b.score-a.score);
+    scores = scores.slice(0,5);
+    localStorage.setItem('dodgeBoard', JSON.stringify(scores));
+    updateLeaderboard();
+  }
 
-    function drawPowerUps() {
-      powerUps.forEach(p => {
-        ctx.fillStyle = p.type === "shoot" ? "red" : p.type === "speed" ? "blue" : "purple";
-        ctx.beginPath();
-        ctx.arc(p.x + 10, p.y + 10, p.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
+  function startGame(){
+    if(running) return;
+    resetGame();
+    running = true; paused = false;
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
 
-    function update() {
-      // Movement
-      let moveSpeed = player.speed;
-      if (powerTimers.speed > 0) moveSpeed = 8;
-      if (keys["ArrowLeft"] && player.x > 0) player.x -= moveSpeed;
-      if (keys["ArrowRight"] && player.x + player.size < canvas.width) player.x += moveSpeed;
-      if (keys["ArrowUp"] && player.y > 0) player.y -= moveSpeed;
-      if (keys["ArrowDown"] && player.y + player.size < canvas.height) player.y += moveSpeed;
+  function restartGame(){
+    running = false;
+    resetGame();
+    startGame();
+  }
 
-      // Shooting
-      if (player.canShoot && keys[" "] && bullets.length < 5) {
-        bullets.push({ x: player.x + player.size / 2 - 2, y: player.y });
-      }
-
-      // Update bullets
-      bullets.forEach(b => b.y -= 8);
-      bullets = bullets.filter(b => b.y > -10);
-
-      // Update rocks
-      const fallSpeed = powerTimers.slow > 0 ? rockSpeed / 2 : rockSpeed;
-      rocks.forEach(r => r.y += fallSpeed);
-      rocks = rocks.filter(r => r.y < canvas.height + 30);
-
-      // Update power-ups
-      powerUps.forEach(p => p.y += 2);
-      powerUps = powerUps.filter(p => p.y < canvas.height + 30);
-
-      // Collisions
-      rocks.forEach((r, ri) => {
-        // Player collision
-        if (r.x < player.x + player.size && r.x + r.size > player.x &&
-            r.y < player.y + player.size && r.y + r.size > player.y) {
-          gameOver = true;
-        }
-
-        // Bullet collision
-        bullets.forEach((b, bi) => {
-          if (b.x < r.x + r.size && b.x + 4 > r.x && b.y < r.y + r.size && b.y + 10 > r.y) {
-            rocks.splice(ri, 1);
-            bullets.splice(bi, 1);
-            score += 5;
-          }
-        });
-      });
-
-      // Power-up pickup
-      powerUps.forEach((p, pi) => {
-        if (p.x < player.x + player.size && p.x + p.size > player.x &&
-            p.y < player.y + player.size && p.y + p.size > player.y) {
-          if (p.type === "shoot") player.canShoot = true;
-          if (p.type === "speed") powerTimers.speed = 300;
-          if (p.type === "slow") powerTimers.slow = 300;
-          powerUps.splice(pi, 1);
-        }
-      });
-
-      // Timers
-      if (powerTimers.speed > 0) powerTimers.speed--;
-      if (powerTimers.slow > 0) powerTimers.slow--;
-
-      // Score and spawn
-      if (Math.random() < 0.02) spawnRock();
-      if (Math.random() < 0.005) spawnPowerUp();
-      score++;
-    }
-
-    function drawUI() {
-      ctx.fillStyle = "white";
-      ctx.font = "16px Arial";
-      ctx.fillText("Score: " + score, 10, 20);
-      if (player.canShoot) ctx.fillText("Shoot Ready", 10, 40);
-      if (powerTimers.speed > 0) ctx.fillText("Speed Boost!", 10, 60);
-      if (powerTimers.slow > 0) ctx.fillText("Slow Motion!", 10, 80);
-    }
-
-    function loop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawPlayer();
-      drawRocks();
-      drawBullets();
-      drawPowerUps();
-      drawUI();
-
-      update();
-
-      if (gameOver) {
-        ctx.fillStyle = "red";
-        ctx.font = "30px Arial";
-        ctx.fillText("GAME OVER!", 250, 250);
-        ctx.font = "20px Arial";
-        ctx.fillText("Score: " + score, 300, 280);
-        ctx.fillText("Press Start to Restart", 240, 310);
-        gameRunning = false;
-        return;
-      }
+  function togglePause(){
+    if(!running) return;
+    paused = !paused;
+    pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    if(!paused){
+      lastTime = performance.now();
       requestAnimationFrame(loop);
     }
+  }
 
-    startBtn.addEventListener("click", () => {
-      resetGame();
-      gameRunning = true;
-      loop();
-    });
-  </script>
+  function resetGame(){
+    rocks = []; score = 0; dodged = 0; spawnTimer = 0;
+    scoreEl.textContent = '0'; dodgedEl.textContent = '0';
+    difficultyEl.textContent = 'Easy'; pauseBtn.textContent = 'Pause';
+    player.x = w/2; wallTime = 0;
+  }
+
+  function endGame(){
+    running = false; paused = false;
+    if(score > highScore){
+      highScore = score;
+      localStorage.setItem('dodgeHigh', String(highScore));
+      highScoreEl.textContent = highScore;
+    }
+    const name = prompt("Game Over! Enter your name for the leaderboard:", "Player");
+    if(name){
+      saveToLeaderboard(name, score);
+    }
+    drawGameOver();
+  }
+
+  function collides(ax,ay,ar,bx,by,br){
+    const dx = ax-bx, dy = ay-by;
+    return (dx*dx + dy*dy) <= (ar+br)*(ar+br);
+  }
+
+  function loop(now){
+    if(!running || paused) return;
+    const dt = Math.min(40, now - lastTime);
+    lastTime = now;
+    update(dt/1000);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function update(delta){
+    score += Math.round(60 * delta);
+    scoreEl.textContent = score;
+
+    speedFactor += 0.005 * delta * 60;
+    spawnInterval = Math.max(300, 1000 - score * 0.8);
+
+    if(score < 500) difficultyEl.textContent = 'Easy';
+    else if(score < 1500) difficultyEl.textContent = 'Medium';
+    else difficultyEl.textContent = 'Hard';
+
+    let moveDir = 0;
+    if(keys.left) moveDir -= 1;
+    if(keys.right) moveDir += 1;
+    player.x += moveDir * player.speed * delta;
+    player.x = clamp(player.x, player.radius, w - player.radius);
+
+    // anti-wall camping
+    if(player.x < 80 || player.x > w - 80) wallTime += delta;
+    else wallTime = Math.max(0, wallTime - delta*0.5);
+
+    // if camping too long -> spawn edge rocks
+    if(wallTime > 2){
+      if(Math.random() < 0.1){
+        const edgeX = player.x < w/2 ? rand(10,80) : rand(w-80,w-10);
+        rocks.push(makeRock(edgeX));
+      }
+    }
+
+    spawnTimer += delta*1000;
+    if(spawnTimer >= spawnInterval){
+      spawnTimer = 0;
+      rocks.push(makeRock());
+    }
+
+    for(let i=rocks.length-1;i>=0;i--){
+      const r = rocks[i];
+      r.y += r.speed * delta;
+      r.rotation += r.rotSpeed * delta;
+      if(collides(player.x, player.y, player.radius, r.x, r.y, r.size/2)){
+        endGame();
+        return;
+      }
+      if(r.y - r.size > h){
+        rocks.splice(i,1);
+        dodged++; dodgedEl.textContent = dodged;
+      }
+    }
+  }
+
+  function clear(){ ctx.clearRect(0,0,w,h); }
+
+  function drawPlayer(){
+    ctx.save();
+    ctx.beginPath(); ctx.fillStyle = '#082233';
+    ctx.arc(player.x, player.y+8, player.radius+12, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.fillStyle = player.color;
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawRock(r){
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.rotate(r.rotation);
+    const s = r.size;
+    ctx.beginPath();
+    ctx.moveTo(-s/2, -s/2);
+    ctx.lineTo( s/2, -s/4);
+    ctx.lineTo( s/3, s/2);
+    ctx.lineTo(-s/3, s/2);
+    ctx.closePath();
+    ctx.fillStyle = '#83756b';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function render(){
+    clear();
+    for(const r of rocks) drawRock(r);
+    drawPlayer();
+  }
+
+  function drawGameOver(){
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.54)';
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.font = '36px system-ui';
+    ctx.fillText('Game Over', w/2, h/2 - 30);
+    ctx.font = '18px system-ui';
+    ctx.fillText('Score: ' + score, w/2, h/2 + 2);
+    ctx.fillText('Rocks dodged: ' + dodged, w/2, h/2 + 28);
+    ctx.font = '14px system-ui';
+    ctx.fillStyle = '#cbdaf1';
+    ctx.fillText('Click Restart to play again', w/2, h/2 + 60);
+    ctx.restore();
+  }
+
+  window.addEventListener('keydown', e=>{
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=true;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=true;
+    if(e.key===' ') togglePause();
+  });
+  window.addEventListener('keyup', e=>{
+    if(e.key==='ArrowLeft'||e.key==='a') keys.left=false;
+    if(e.key==='ArrowRight'||e.key==='d') keys.right=false;
+  });
+
+  startBtn.addEventListener('click', startGame);
+  pauseBtn.addEventListener('click', togglePause);
+  restartBtn.addEventListener('click', restartGame);
+
+  ctx.fillStyle = '#9bbfdb';
+  ctx.font = '20px system-ui';
+  ctx.fillText('Press Start to play', 16, 34);
+})();
+</script>
 </body>
 </html>
